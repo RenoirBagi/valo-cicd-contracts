@@ -26,6 +26,20 @@ jobs:
           node-version: '20'
         continue-on-error: true
 
+      - name: Download schema from valo-cicd-contracts
+        id: schema
+        continue-on-error: true
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/RenoirBagi/valo-cicd-contracts/master/schemas/meta.schema.json \
+            -o /tmp/meta.schema.json
+          if [ $? -eq 0 ]; then
+            echo "downloaded=true" >> $GITHUB_OUTPUT
+            echo "Schema baixado com sucesso"
+          else
+            echo "downloaded=false" >> $GITHUB_OUTPUT
+            echo "::warning::Falha ao baixar schema do valo-cicd-contracts"
+          fi
+
       - name: Extrair meta.json do body do PR
         id: extract
         continue-on-error: true
@@ -36,7 +50,6 @@ jobs:
           PR_BODY=$(gh pr view ${{ github.event.pull_request.number }} --json body -q '.body')
 
           # Extrai bloco JSON que contem "id" e "track" (meta.json)
-          # Procura por ```json ... ``` com campos do contrato
           META_JSON=$(echo "$PR_BODY" | grep -Pzo '(?s)```json\s*\n\{[^`]*"id"[^`]*"track"[^`]*\}' | tr '\0' '\n' | sed 's/```json//' | sed 's/```//')
 
           if [ -z "$META_JSON" ]; then
@@ -52,20 +65,10 @@ jobs:
 
       - name: Validar contra schema
         id: validate
-        if: steps.extract.outputs.meta_found == 'true'
+        if: steps.extract.outputs.meta_found == 'true' && steps.schema.outputs.downloaded == 'true'
         continue-on-error: true
         run: |
-          # Baixa o schema (ajustar URL para o repo real quando aplicar)
-          # Por ora assume que o schema esta no proprio repo em .github/schemas/
-          if [ -f ".github/schemas/meta.schema.json" ]; then
-            SCHEMA=".github/schemas/meta.schema.json"
-          else
-            echo "::warning::Schema nao encontrado em .github/schemas/meta.schema.json"
-            exit 0
-          fi
-
-          # Instala ajv-cli e valida
-          npx ajv-cli validate -s "$SCHEMA" -d /tmp/meta.json --strict=false
+          npx ajv-cli validate -s /tmp/meta.schema.json -d /tmp/meta.json --strict=false
 
           if [ $? -eq 0 ]; then
             echo "valid=true" >> $GITHUB_OUTPUT
@@ -98,7 +101,11 @@ jobs:
 
           :x: **meta.json invalido** — verifique campos obrigatorios (id, project, track, risk, scope, verify_steps, rollback_strategy, approvers).
 
-          Execute localmente: \`npx ajv-cli validate -s .github/schemas/meta.schema.json -d seu-meta.json\`"
+          Valide localmente:
+          \`\`\`bash
+          curl -fsSL https://raw.githubusercontent.com/RenoirBagi/valo-cicd-contracts/master/schemas/meta.schema.json -o /tmp/schema.json
+          npx ajv-cli validate -s /tmp/schema.json -d seu-meta.json --strict=false
+          \`\`\`"
           fi
 
           gh pr comment "$PR_NUM" --body "$COMMENT"

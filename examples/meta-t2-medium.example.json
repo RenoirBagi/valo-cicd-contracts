@@ -1,0 +1,23 @@
+{
+  "id": "20260531-1500-luminis-export-csv",
+  "project": "luminis",
+  "track": "T2-medium",
+  "risk": "medium",
+  "scope": ["backend", "frontend"],
+  "tables_affected": [],
+  "rls_changed": false,
+  "fiscal_impact": false,
+  "billing_impact": false,
+  "expected_rows_migration": 0,
+  "preview_url_required": true,
+  "verify_steps": [
+    "Acessar preview URL e logar como usuario teste",
+    "Exportar CSV de transacoes do mes atual",
+    "Abrir CSV e validar colunas: data, descricao, valor, categoria",
+    "Testar com conta sem transacoes (deve gerar CSV vazio com header)"
+  ],
+  "rollback_strategy": "git revert do PR + redeploy; edge function nao persiste estado",
+  "approvers": ["renoir"],
+  "co_approvers_allowed": ["guilherme"],
+  "evidence": []
+}

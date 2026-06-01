@@ -1,0 +1,104 @@
+# Validacao do Contrato CI/CD JELP
+# Fase 2: modo WARNING (continue-on-error: true)
+# Fase 3: ativar bloqueio removendo continue-on-error ou setando para false
+
+name: CI/CD Contract Lint
+
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate-meta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        continue-on-error: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+        continue-on-error: true
+
+      - name: Extrair meta.json do body do PR
+        id: extract
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Busca o body do PR
+          PR_BODY=$(gh pr view ${{ github.event.pull_request.number }} --json body -q '.body')
+
+          # Extrai bloco JSON que contem "id" e "track" (meta.json)
+          # Procura por ```json ... ``` com campos do contrato
+          META_JSON=$(echo "$PR_BODY" | grep -Pzo '(?s)```json\s*\n\{[^`]*"id"[^`]*"track"[^`]*\}' | tr '\0' '\n' | sed 's/```json//' | sed 's/```//')
+
+          if [ -z "$META_JSON" ]; then
+            echo "meta_found=false" >> $GITHUB_OUTPUT
+            echo "::warning::Nenhum meta.json encontrado no body do PR"
+            exit 0
+          fi
+
+          echo "$META_JSON" > /tmp/meta.json
+          echo "meta_found=true" >> $GITHUB_OUTPUT
+          echo "Meta.json extraido:"
+          cat /tmp/meta.json
+
+      - name: Validar contra schema
+        id: validate
+        if: steps.extract.outputs.meta_found == 'true'
+        continue-on-error: true
+        run: |
+          # Baixa o schema (ajustar URL para o repo real quando aplicar)
+          # Por ora assume que o schema esta no proprio repo em .github/schemas/
+          if [ -f ".github/schemas/meta.schema.json" ]; then
+            SCHEMA=".github/schemas/meta.schema.json"
+          else
+            echo "::warning::Schema nao encontrado em .github/schemas/meta.schema.json"
+            exit 0
+          fi
+
+          # Instala ajv-cli e valida
+          npx ajv-cli validate -s "$SCHEMA" -d /tmp/meta.json --strict=false
+
+          if [ $? -eq 0 ]; then
+            echo "valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "valid=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comentar resultado no PR
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+
+          if [ "${{ steps.extract.outputs.meta_found }}" != "true" ]; then
+            COMMENT="## Contrato CI/CD
+
+          :warning: **meta.json nao encontrado** no body do PR.
+
+          Adicione o bloco \`\`\`json com os campos do contrato. Ver template de PR."
+
+          elif [ "${{ steps.validate.outputs.valid }}" == "true" ]; then
+            COMMENT="## Contrato CI/CD
+
+          :white_check_mark: **meta.json valido** — contrato OK."
+
+          else
+            COMMENT="## Contrato CI/CD
+
+          :x: **meta.json invalido** — verifique campos obrigatorios (id, project, track, risk, scope, verify_steps, rollback_strategy, approvers).
+
+          Execute localmente: \`npx ajv-cli validate -s .github/schemas/meta.schema.json -d seu-meta.json\`"
+          fi
+
+          gh pr comment "$PR_NUM" --body "$COMMENT"

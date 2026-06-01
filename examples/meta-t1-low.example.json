@@ -1,0 +1,21 @@
+{
+  "id": "20260531-1430-luminis-copy-transacao",
+  "project": "luminis",
+  "track": "T1",
+  "risk": "low",
+  "scope": ["frontend"],
+  "tables_affected": [],
+  "rls_changed": false,
+  "fiscal_impact": false,
+  "billing_impact": false,
+  "expected_rows_migration": 0,
+  "preview_url_required": true,
+  "verify_steps": [
+    "Abrir tela de transacao na preview Vercel",
+    "Confirmar que o novo texto aparece corretamente"
+  ],
+  "rollback_strategy": "git revert + redeploy via Vercel dashboard",
+  "approvers": ["renoir"],
+  "co_approvers_allowed": ["guilherme"],
+  "evidence": []
+}

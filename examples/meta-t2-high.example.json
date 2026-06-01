@@ -1,0 +1,26 @@
+{
+  "id": "20260531-1600-luminis-accounts-currency",
+  "project": "luminis",
+  "track": "T2-high",
+  "risk": "high",
+  "scope": ["db-migration", "backend", "frontend"],
+  "tables_affected": ["accounts"],
+  "rls_changed": true,
+  "fiscal_impact": false,
+  "billing_impact": false,
+  "expected_rows_migration": 5,
+  "preview_url_required": true,
+  "verify_steps": [
+    "Rodar SELECT count(*) FROM accounts WHERE currency IS NOT NULL apos migration",
+    "Confirmar que coluna currency existe com default 'BRL'",
+    "Testar RLS: usuario A nao ve accounts do usuario B",
+    "Acessar preview e confirmar UI mostra moeda corretamente"
+  ],
+  "rollback_strategy": "Rodar down.sql (ALTER TABLE accounts DROP COLUMN currency); aplicar antes: pg_dump da tabela accounts",
+  "approvers": ["renoir", "guilherme"],
+  "co_approvers_allowed": [],
+  "evidence": [
+    "supabase/migrations/20260531_add_currency_to_accounts.sql",
+    "supabase/migrations/20260531_add_currency_to_accounts.down.sql"
+  ]
+}

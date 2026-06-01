@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://valo.tech/schemas/cicd/meta.schema.json",
+  "title": "JELP CI/CD meta.json",
+  "description": "Contrato operacional de PR — schema v1 conforme principles_cicd_pipeline.md",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^\\d{8}-\\d{4}-[a-z0-9-]+$",
+      "description": "Formato: YYYYMMDD-HHMM-<projeto>-<topic-kebab>"
+    },
+    "project": {
+      "type": "string",
+      "enum": ["luminis", "evidence", "sankhya", "regatra", "jelp"]
+    },
+    "track": {
+      "type": "string",
+      "enum": ["T1", "T2-medium", "T2-high", "T3", "T4"]
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["frontend", "backend", "db-migration", "infra", "agent", "n8n", "secret"]
+      },
+      "minItems": 1
+    },
+    "tables_affected": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "rls_changed": {
+      "type": "boolean",
+      "default": false
+    },
+    "fiscal_impact": {
+      "type": "boolean",
+      "default": false
+    },
+    "billing_impact": {
+      "type": "boolean",
+      "default": false
+    },
+    "expected_rows_migration": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "preview_url_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "verify_steps": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Passos de verificacao pos-merge"
+    },
+    "rollback_strategy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Como reverter se der problema"
+    },
+    "approvers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Quem precisa aprovar (renoir obrigatorio em T2-high/T3/T4)"
+    },
+    "co_approvers_allowed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Paths ou URLs de evidencia (obrigatorio se fiscal_impact ou billing_impact)"
+    }
+  },
+  "required": ["id", "project", "track", "risk", "scope", "verify_steps", "rollback_strategy", "approvers"],
+  "if": {
+    "anyOf": [
+      { "properties": { "fiscal_impact": { "const": true } } },
+      { "properties": { "billing_impact": { "const": true } } }
+    ]
+  },
+  "then": {
+    "properties": {
+      "evidence": { "minItems": 1 }
+    }
+  }
+}

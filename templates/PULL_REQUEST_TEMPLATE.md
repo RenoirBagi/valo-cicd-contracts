@@ -49,4 +49,5 @@ Marque o track conforme o Contrato CI/CD JELP:
 <!-- Anexe screenshots, logs, links de preview conforme o track exigir -->
 
 ---
-Contrato completo: [principles_cicd_pipeline.md](https://github.com/RenoirBagi/claude-memory/blob/main/memory/jelp/principles_cicd_pipeline.md)
+Schema: [meta.schema.json](https://raw.githubusercontent.com/RenoirBagi/valo-cicd-contracts/master/schemas/meta.schema.json)
+Contrato completo: [Documentacao CI/CD JELP](https://github.com/RenoirBagi/valo-cicd-contracts/blob/master/README.md)
